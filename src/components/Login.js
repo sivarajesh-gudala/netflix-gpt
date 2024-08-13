@@ -3,13 +3,19 @@ import Header from "./Header";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
 import { auth } from "../utils/firebase";
 import { checkValidate } from "../utils/validate";
+import { PHOTO_URL } from "../utils/constants";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 
 const Login = () => {
   const [isSignInForm, setIsSignInForm] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const dispatch = useDispatch();
 
   const userName = useRef(null);
   const email = useRef(null);
@@ -20,12 +26,8 @@ const Login = () => {
   };
 
   const handleSignInSignUpForm = () => {
-    console.log(email.current.value);
-    console.log(password.current.value);
     const message = checkValidate(email.current.value, password.current.value);
     setErrorMessage(message);
-    console.log(message, errorMessage);
-
     if (message) return;
     if (!isSignInForm) {
       createUserWithEmailAndPassword(
@@ -34,26 +36,36 @@ const Login = () => {
         password.current.value
       )
         .then((userCredential) => {
-          // const user = userCredential.user;
+          updateProfile(auth.currentUser, {
+            displayName: userName.current.value,
+            photoURL: PHOTO_URL,
+          })
+            .then(() => {
+              const currentUser = auth.currentUser;
+              const { uid, email, displayName, photoURL } = currentUser;
+              dispatch(
+                addUser({
+                  uid: uid,
+                  email: email,
+                  displayName: displayName,
+                  photoURL: photoURL,
+                })
+              );
+            })
+            .catch((error) => {
+              setErrorMessage(error.message);
+            });
         })
         .catch((error) => {
           setErrorMessage(`${error.code} - ${error.message}`);
         });
     } else {
-      console.log();
-
       signInWithEmailAndPassword(
         auth,
         email.current.value,
         password.current.value
       )
-        .then((userCredential) => {
-          // Signed in
-          const user = userCredential.user;
-          console.log(user);
-
-          // ...
-        })
+        .then((userCredential) => {})
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
